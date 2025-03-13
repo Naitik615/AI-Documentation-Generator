@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeDoc AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body.dark {
+            background-color: #1a202c !important;
+            color: #f7fafc !important;
+        }
+
+        body.dark .bg-white {
+            background-color: #2d3748 !important;
+        }
+
+        body.dark .text-gray-800 {
+            color: #f7fafc !important;
+        }
+
+        body.dark .text-gray-600 {
+            color: #a0aec0 !important;
+        }
+
+        body.dark .code-input {
+            background-color: #2d3748 !important;
+            color: #f7fafc !important;
+            border-color: #4a5568 !important;
+        }
+
+        body.dark .documentation-output {
+            background-color: #2d3748 !important;
+            color: #a0aec0 !important;
+            border-color: #4a5568 !important;
+        }
+
+        .code-input {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .documentation-output {
+            max-height: 50vh;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #4F46E5, #06B6D4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .pulse-animation {
+            animation: pulse 5s infinite;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: #ccd0d5;
+            border-radius: 4px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: #a8adb3;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="min-h-screen p-4 md:p-8">
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center space-x-3">
+                <i class="bi bi-braces-asterisk text-indigo-600 text-3xl"></i>
+                <span class="text-3xl font-bold gradient-text pulse-animation">CodeDoc AI</span>
+            </div>
+            <button id="themeToggle" class="text-gray-600 hover:text-gray-800 transition">
+                <i class="bi bi-sun"></i> Toggle Theme
+            </button>
+        </header>
+
+        <main class="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-6">
+            <!-- Code Input Section -->
+            <div class="mb-6">
+                <label class="block text-gray-300
+                font-medium mb-2">Input Your Code:</label>
+                <textarea id="codeInput" class="code-input w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none scrollbar-custom" placeholder="// Paste your code here..."></textarea>
+            </div>
+
+            <!-- Generate Documentation Section -->
+            <div class="flex justify-center items-center h-64 mb-6">
+                <div class="flex flex-col items-center gap-4">
+                    <button id="generateBtn" class="bg-gradient-to-r from-indigo-600 to-pink-500 text-white px-6 py-2 rounded-lg hover:opacity-90 transition flex items-center gap-2 shadow-lg">
+                        <i class="bi bi-magic"></i>
+                        Generate Documentation
+                    </button>
+                    <div id="loader" class="mt-2" style="display: none;">
+                        <div class="w-6 h-6 border-4 border-blue-300 border-t-transparent border-solid rounded-full animate-spin"></div>
+                        <p id="timer" class="text-gray-500 mt-2 text-sm"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documentation Output Section -->
+            <div id="outputSection" class="hidden">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Generated Documentation</h2>
+                    <div id="documentationOutput" class="documentation-output bg-gray-50 border border-gray-300 rounded-lg scrollbar-custom">
+                        <p id="placeholderText" class="text-gray-400 text-center py-12">
+                            <i class="bi bi-file-earmark-text text-6xl mb-4 block"></i>
+                            <p>Your smart documentation will appear here...</p>
+                            <p class="text-sm mt-2">Supports multiple programming languages and frameworks.</p>
+                        </p>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button id="copyBtn" class="text-indigo-600 hover:text-indigo-700 px-4 py-2 rounded-lg flex items-center gap-2 hidden">
+                            <i class="bi bi-clipboard"></i>
+                            Copy Documentation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        const generateBtn = document.getElementById('generateBtn');
+        const codeInput = document.getElementById('codeInput');
+        const documentationOutput = document.getElementById('documentationOutput');
+        const outputSection = document.getElementById('outputSection');
+        const loader = document.getElementById('loader');
+        const timer = document.getElementById('timer');
+        const placeholderText = document.getElementById('placeholderText');
+        const copyBtn = document.getElementById('copyBtn');
+
+        // Theme Toggle Logic
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const themeIcon = themeToggle.querySelector('i');
+            if (document.body.classList.contains('dark')) {
+                themeIcon.classList.replace('bi-sun', 'bi-moon');
+            } else {
+                themeIcon.classList.replace('bi-moon', 'bi-sun');
+            }
+        });
+
+        // Generate Documentation
+        generateBtn.addEventListener('click', async () => {
+            const code = codeInput.value.trim();
+            if (!code) {
+                alert('Please enter some code first!');
+                return;
+            }
+
+            // Show loader and initialize timer
+            loader.style.display = 'block';
+            let remainingTime = 30;
+            timer.textContent = `${remainingTime} seconds remaining...`;
+
+            const interval = setInterval(() => {
+                remainingTime--;
+                if (remainingTime > 0) {
+                    timer.textContent = `${remainingTime} Estimated seconds remaining...`;
+                } else {
+                    timer.textContent = `Finalizing...`;
+                }
+            }, 1000);
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code }),
+                });
+
+                const data = await response.json();
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    placeholderText.style.display = 'none';
+                    documentationOutput.innerHTML = `<p>${data.generated_doc.replace(/\n/g, '<br>')}</p>`;
+                    outputSection.classList.remove('hidden');
+                    copyBtn.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while generating documentation.');
+            } finally {
+                clearInterval(interval);
+                loader.style.display = 'none';
+                timer.textContent = ''; // Clear timer
+                generateBtn.disabled = false;
+            }
+        });
+
+        // Copy Documentation
+        copyBtn.addEventListener('click', () => {
+            const docText = documentationOutput.innerText;
+            navigator.clipboard.writeText(docText).then(() => {
+                copyBtn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy Documentation';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy documentation');
+            });
+        });
+    </script>
+</body>
+</html>
